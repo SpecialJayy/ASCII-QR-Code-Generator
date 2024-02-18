@@ -1,0 +1,2 @@
+https://www.swisseduc.ch/informatik/theoretische_informatik/qr_codes/docs/qr_standard.pdf
+page 35 - version/ECC segment count
