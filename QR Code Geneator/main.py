@@ -15,15 +15,21 @@ def CreateDataSegment(string,array):
     for character in string:
         array.append(format(ord(character),'08b'))
 
-def AddReedSolomon(data, ecc):
-    rs = RSCodec(ecc)
-    encoded_data = rs.encode(data.encode('utf-8'))
-    return encoded_data
+def AddReedSolomon(segmentCount):
+    #jak narazie wszyskie segmenty to FF
+    temp = []
+    for i in range(segmentCount):
+        temp.append("FF")
+    return temp
+
 
 def FitToVersionNumber(bytes,ecc): #eec- error correction code
     for version, capacity in capacities:
         if bytes < capacity-1:
             return version
+
+def MatchEccCapacity(version):
+    return eccCapacities[version-1][1]
 
 def CalculateBytePadding(codeWorks,maxCodeWorks):
     remainingCodeWorks = round((maxCodeWorks - codeWorks)/8)
@@ -56,8 +62,11 @@ capacities = [
         (26, 1370), (27, 1468), (28, 1531), (29, 1631), (30, 1735), (31, 1843), (32, 1955),
         (33, 2071), (34, 2191), (35, 2306), (36, 2434), (37, 2566), (38, 2702), (39, 2812), (40, 2956)
     ]
-eccSegments = [
-
+eccCapacities = [
+    (1,7), (2,10), (3,15), (4,20), (5,26), (6,36), (7,40), (8,48), (9,60), (10,72), (11,80), (12,96),
+    (13,104), (14,120), (15,132), (16,144), (17,168), (18,180), (19,196), (20,224), (21,224), (22,252),
+    (23,270), (24,300), (25,312), (26,336),(27,360),(28,390),(29,420),(30,450),(31,480), (32,510),
+    (33,540), (34,570), (35,570),(36,600), (37,630),(38,660), (39,720), (40,750)
 ]
 
 # Przypisanie trybu generowania
@@ -96,12 +105,14 @@ bitSequence = ConcatenateSegments(seg0Mode,str(seg0Count),wordBinary,terminator,
 #przerobienie bitSequence na hexadecimal
 hexSequence = ConvertToHexadecimal(bitSequence)
 
-#dodanie Reed-Solomon Error Correction
-encoded_data_reedSolomon = AddReedSolomon(bitSequence, errorCorrectionLevel)
-
-# reedSolomonHex = ConvertToHexadecimal(encoded_data_reedSolomon)
-
 amountOfDataCodeworks = sumBits/8
+
+#obliczenie ilości potrzebnych segmentów reed-solomon
+reedSolomonCount = MatchEccCapacity(version)
+
+#dodanie Reed-Solomon Error Correction
+print(AddReedSolomon(reedSolomonCount))
+
 
 #debugging print
 print("\nNumber of bytes: ", bytesCount,
@@ -116,4 +127,5 @@ print("\nNumber of bytes: ", bytesCount,
       "\nFinal Sequence Of Data Bits : ", bitSequence,
       "\nFinal Sequence Of Data Hex : ", hexSequence,
       "\n Number of data codeworks :", amountOfDataCodeworks,
+      "\n Number of reed solomon segments : ", reedSolomonCount,
       "\nEncoded Sequence with Reed-Solomon Hex: ")
