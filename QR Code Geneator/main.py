@@ -1,5 +1,8 @@
 #includy (shame)
 from reedsolo import RSCodec, ReedSolomonError
+from PIL import Image
+import numpy as np
+import os, sys
 
 # Funkcje
 def CheckForType(string):
@@ -50,9 +53,71 @@ def ConvertToHexadecimal(bitSequence):
     binary_segments = [bitSequence[i:i + 8] for i in range(0, len(bitSequence), 8)]
     hex_segments = [format(int(segment, 2), '02X') for segment in binary_segments]
     return hex_segments
+
+def ConvertToBinary(hexSequence):
+    bitSequence =[]
+    for segment in hexSequence:
+        bitSequence.append(bin(int(segment, 16))[2:].zfill(8))
+    return bitSequence
+
+def ConcatenateToFinal(codeWorks,ecc):
+    arr = []
+    for i in codeWorks:
+        arr.append(i)
+    for i in ecc:
+        arr.append(i)
+    return arr
+
+def CalculateSize(version):
+    return 17+(version*4)
+
+def CreateQr():
+    #fixed patterns
+    countY = 0
+    countX = 0
+    for x in range(len(qr)):
+        if (countX % 2 == 0):
+            qr[6][x] = "1"
+        else:
+            qr[6][x] = "0"
+        countX+=1
+    for y in range(len(qr)):
+        if (countY % 2 == 0):
+            qr[y][6] = "1"
+        else:
+            qr[y][6] = "0"
+        countY+=1
+
+    #finder patterns
+
+def PrintQrCode():
+    str = ""
+    for i in range(len(qr)):
+        for j in range(len(qr)):
+            str += qr[i][j]
+        str += "\n"
+    print(str)
+
+    # robienie obrazka z biblioteką Pillow
+    width = len(qr)*2
+
+    img = Image.new('RGB', (width, width), "white")
+    pixels = img.load()
+
+    for y in range(width):
+        for x in range(width):
+            if qr[y][x] == "1":
+                pixels[x, y] = (255, 255, 255)
+            else:
+                pixels[x, y] = (0, 0, 0)
+    img.save("qrcode.png")
+    img.show()
+
+
 # Reszta
 print("-----------------------------------Super Tworzator kodu QR-----------------------------------")
-word = input("Podaj Ciąg znaków do utorzenia kodu QR\n")  #"https://prisma-lab.pl/english/"
+# word = input("Podaj Ciąg znaków do utorzenia kodu QR\n")  "https://prisma-lab.pl/english/"
+word = "https://www.freecodecamp.org/news/multi-dimensional-arrays-in-python/"
 
 #zmienne globalne
 capacities = [
@@ -61,7 +126,7 @@ capacities = [
         (18, 721), (19, 795), (20, 861), (21, 932), (22, 1006), (23, 1094), (24, 1174), (25, 1276),
         (26, 1370), (27, 1468), (28, 1531), (29, 1631), (30, 1735), (31, 1843), (32, 1955),
         (33, 2071), (34, 2191), (35, 2306), (36, 2434), (37, 2566), (38, 2702), (39, 2812), (40, 2956)
-    ]
+]
 eccCapacities = [
     (1,7), (2,10), (3,15), (4,20), (5,26), (6,36), (7,40), (8,48), (9,60), (10,72), (11,80), (12,96),
     (13,104), (14,120), (15,132), (16,144), (17,168), (18,180), (19,196), (20,224), (21,224), (22,252),
@@ -111,8 +176,22 @@ amountOfDataCodeworks = sumBits/8
 reedSolomonCount = MatchEccCapacity(version)
 
 #dodanie Reed-Solomon Error Correction
-print(AddReedSolomon(reedSolomonCount))
+ecc = AddReedSolomon(reedSolomonCount)
 
+#ostateczna sekwencja danych do tworzenia kodu QR
+finalHex = ConcatenateToFinal(hexSequence,ecc)
+
+#przerobienie ostateczniej sekwencji hex na bin
+finalArray = ConvertToBinary(finalHex)
+finalString = "".join(finalArray)
+
+#rysowanie kodu
+size = CalculateSize(version)
+
+#tworzenie pustego "szkieletu" kodu QR wypełnionego zerami
+qr = np.array([ ["0"] * size] * size)
+
+CreateQr()
 
 #debugging print
 print("\nNumber of bytes: ", bytesCount,
@@ -128,4 +207,9 @@ print("\nNumber of bytes: ", bytesCount,
       "\nFinal Sequence Of Data Hex : ", hexSequence,
       "\n Number of data codeworks :", amountOfDataCodeworks,
       "\n Number of reed solomon segments : ", reedSolomonCount,
-      "\nEncoded Sequence with Reed-Solomon Hex: ")
+      "\nEncoded Sequence with Reed-Solomon Hex: ", finalHex,
+      "\nFinal Binary Sequence for building the QR code:", finalArray,
+      "\nOr :", finalString,
+      "\nSize of QR code :", size,
+      "\nQr : ", qr,)
+PrintQrCode()
